@@ -5,7 +5,7 @@ return [
      | GitHub repository  (owner/repo)
      | Used to fetch version.json and download the update ZIP.
      */
-    'repo'   => 'afgshayan/aelso',
+    'repo'   => 'afgshayan/Nonprofit-Members-Portal',
 
     /*
      | Branch to download from
