@@ -1,4 +1,4 @@
 {
-    "version": "1.0.1",
-    "changelog": "Default records per page changed to 100; fixed installer .env directory bug"
+    "version": "1.0.2",
+    "changelog": "Remove Events stat widget"
 }
