@@ -1,4 +1,4 @@
 {
-    "version": "1.0.3",
-    "changelog": "Fix auto-update file copy engine"
+    "version": "1.0.4",
+    "changelog": "Add Events widget back for update test"
 }

@@ -51,6 +51,16 @@
             <div class="stat-sub">Unique provinces / cities</div>
         </div>
     </div>
+    <div class="col-6 col-xl">
+        <div class="stat-card c-pink">
+            <div class="stat-label">
+                Events
+                <i class="bi bi-calendar-event"></i>
+            </div>
+            <div class="stat-val">{{ $events->count() }}</div>
+            <div class="stat-sub">Unique event names</div>
+        </div>
+    </div>
 </div>
 
 {{-- ── Filter card ── --}}
