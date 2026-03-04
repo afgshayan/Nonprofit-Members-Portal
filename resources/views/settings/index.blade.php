@@ -76,7 +76,7 @@
                         <div class="col-md-4">
                             <label class="form-label fw-semibold" style="font-size:.875rem;">Default Records Per Page</label>
                             <input type="number" name="per_page_default" class="form-control @error('per_page_default') is-invalid @enderror"
-                                   value="{{ old('per_page_default', $settings['per_page_default'] ?? 25) }}" min="5" max="1000">
+                                   value="{{ old('per_page_default', $settings['per_page_default'] ?? 100) }}" min="5" max="1000">
                             @error('per_page_default')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-md-4">

@@ -24,7 +24,7 @@ return new class extends Migration
             ['key' => 'app_name',              'value' => 'Nonprofit Members Portal', 'group' => 'general'],
             ['key' => 'app_description',       'value' => 'Member Management System', 'group' => 'general'],
             ['key' => 'timezone',              'value' => 'UTC',          'group' => 'general'],
-            ['key' => 'per_page_default',      'value' => '25',           'group' => 'general'],
+            ['key' => 'per_page_default',      'value' => '100',          'group' => 'general'],
             ['key' => 'date_format',           'value' => 'Y-m-d',        'group' => 'general'],
 
             // Security

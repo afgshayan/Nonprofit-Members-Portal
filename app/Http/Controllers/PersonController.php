@@ -14,7 +14,7 @@ class PersonController extends Controller
     private const SORT_COLUMNS = ['name', 'last_name', 'province', 'country', 'email', 'phone', 'education', 'event_name'];
 
     /** Default items per page */
-    private const PER_PAGE = 50;
+    private const PER_PAGE = 100;
 
     // ---------------------------------------------------------------------------
     // Index — list, search, sort, paginate

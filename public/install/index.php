@@ -399,7 +399,7 @@ function seedSettings(PDO $pdo, string $appName, string $loginSlug = 'login'): v
         ['app_name','general',$appName],
         ['app_description','general','Member Management System'],
         ['timezone','general','UTC'],
-        ['per_page_default','general','25'],
+        ['per_page_default','general','100'],
         ['date_format','general','Y-m-d'],
         ['session_lifetime','security','120'],
         ['login_max_attempts','security','5'],

@@ -1,4 +1,4 @@
 {
-    "version": "1.0.0",
-    "changelog": "Initial release"
+    "version": "1.0.1",
+    "changelog": "Default records per page changed to 100; fixed installer .env directory bug"
 }
