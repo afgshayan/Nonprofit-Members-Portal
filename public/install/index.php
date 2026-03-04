@@ -160,6 +160,26 @@ function runInstallation(): bool|array
 
 function writeEnv(array $db): void
 {
+    $envPath = ENV;
+
+    // If .env exists as a directory (can happen on some servers), remove it
+    if (is_dir($envPath)) {
+        if (!rmdir($envPath)) {
+            throw new \RuntimeException(
+                'A directory named ".env" exists in the project root and could not be removed. '
+                . 'Please delete it manually via FTP/SSH and try again.'
+            );
+        }
+    }
+
+    // Verify the project root is writable
+    if (!is_writable(dirname($envPath))) {
+        throw new \RuntimeException(
+            'The project root directory is not writable by the web server. '
+            . 'Please set write permissions (chmod 755 or 775) on the project root and try again.'
+        );
+    }
+
     $template = file_exists(ENVEXMP) ? file_get_contents(ENVEXMP) : '';
 
     $appKey = 'base64:' . base64_encode(random_bytes(32));
@@ -180,7 +200,7 @@ function writeEnv(array $db): void
         '/^#?\s*SESSION_DRIVER=.*/m'   => 'SESSION_DRIVER=file',
         '/^#?\s*CACHE_STORE=.*/m'      => 'CACHE_STORE=file',
         '/^#?\s*QUEUE_CONNECTION=.*/m' => 'QUEUE_CONNECTION=sync',
-        '/^LOGIN_SLUG=.*/m'             => 'LOGIN_SLUG=' . ($db['login_slug'] ?? 'login'),
+        '/^LOGIN_SLUG=.*/m'            => 'LOGIN_SLUG=' . ($db['login_slug'] ?? 'login'),
     ];
 
     if (!$template) {
@@ -200,7 +220,14 @@ function writeEnv(array $db): void
         if ($new !== null) $template = $new;
     }
 
-    file_put_contents(ENV, $template);
+    $written = file_put_contents($envPath, $template);
+
+    if ($written === false) {
+        throw new \RuntimeException(
+            'Failed to write the .env file. Please check that the web server has write permission '
+            . 'to the project root directory and try again.'
+        );
+    }
 }
 
 function createTables(PDO $pdo): void
@@ -462,14 +489,18 @@ function checkRequirements(): array
         ROOT . '/storage/logs'                    => 'storage/logs/',
     ];
     foreach ($paths as $path => $label) {
-        if (is_file($path)) {
+        // Special case: .env is a file, never a directory — just check parent is writable
+        if ($path === ROOT . '/.env') {
+            // If .env was accidentally created as a directory, remove it
+            if (is_dir($path)) {
+                @rmdir($path);
+            }
+            $writable = is_writable(dirname($path));
+        } elseif (is_file($path)) {
             $writable = is_writable($path);
         } else {
             if (!is_dir($path)) @mkdir($path, 0775, true);
             $writable = is_writable($path);
-        }
-        if (!$writable && $path === ROOT . '/.env') {
-            $writable = is_writable(dirname($path));
         }
         $checks[] = [
             'label' => "Writable: {$label}",
