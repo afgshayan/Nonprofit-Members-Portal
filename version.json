@@ -1,4 +1,4 @@
 {
-    "version": "1.0.2",
-    "changelog": "Remove Events stat widget"
+    "version": "1.0.3",
+    "changelog": "Fix auto-update file copy engine"
 }

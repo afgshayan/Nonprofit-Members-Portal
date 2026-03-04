@@ -74,29 +74,37 @@ class UpdateController extends Controller
         $branch = config('update.branch', 'main');
         $zipUrl = "https://github.com/{$repo}/archive/refs/heads/{$branch}.zip";
 
-        // ── 1. Download ZIP ───────────────────────────────────────────────────
         $tmpZip = storage_path('app/update_tmp.zip');
         $tmpDir = storage_path('app/update_extracted');
 
+        // ── 1. Stream-download ZIP to disk ────────────────────────────────────
         try {
-            $response = Http::timeout(180)
-                ->withOptions(['verify' => false])
-                ->get($zipUrl);
-
-            if (!$response->successful()) {
-                return back()->withErrors(['update' => 'Download failed. HTTP status: ' . $response->status()]);
+            if (!is_dir(dirname($tmpZip))) {
+                @mkdir(dirname($tmpZip), 0755, true);
             }
 
-            file_put_contents($tmpZip, $response->body());
+            $response = Http::timeout(300)
+                ->withOptions([
+                    'verify' => false,
+                    'sink'   => $tmpZip,  // stream directly to disk — no RAM spike
+                ])
+                ->get($zipUrl);
+
+            if (!$response->successful() || !file_exists($tmpZip) || filesize($tmpZip) < 1000) {
+                @unlink($tmpZip);
+                return back()->withErrors(['update' => 'Download failed (status ' . $response->status() . '). Please try again.']);
+            }
         } catch (\Throwable $e) {
+            @unlink($tmpZip);
             return back()->withErrors(['update' => 'Download error: ' . $e->getMessage()]);
         }
 
         // ── 2. Extract ZIP ────────────────────────────────────────────────────
         $zip = new ZipArchive();
-        if ($zip->open($tmpZip) !== true) {
+        $opened = $zip->open($tmpZip);
+        if ($opened !== true) {
             @unlink($tmpZip);
-            return back()->withErrors(['update' => 'Could not open the downloaded ZIP file.']);
+            return back()->withErrors(['update' => 'Could not open ZIP (code ' . $opened . '). File may be corrupt.']);
         }
 
         $this->rmdirRecursive($tmpDir);
@@ -105,7 +113,7 @@ class UpdateController extends Controller
         $zip->close();
         @unlink($tmpZip);
 
-        // ── 3. Locate the top-level folder inside the ZIP (e.g. "aelso-main/")
+        // ── 3. Find top-level folder inside the ZIP (e.g. "repo-main/") ───────
         $topDirs = glob($tmpDir . '/*', GLOB_ONLYDIR);
         if (empty($topDirs)) {
             $this->rmdirRecursive($tmpDir);
@@ -113,14 +121,65 @@ class UpdateController extends Controller
         }
 
         $extractedRoot = rtrim($topDirs[0], '/\\') . DIRECTORY_SEPARATOR;
+        $projectRoot   = rtrim(base_path(), '/\\') . DIRECTORY_SEPARATOR;
 
-        // ── 4. Copy files (skipping protected paths) ──────────────────────────
-        $this->copyDirectory($extractedRoot, base_path() . DIRECTORY_SEPARATOR);
+        // ── 4. Copy files using file_put_contents (more reliable than copy()) ─
+        $copied  = 0;
+        $skipped = 0;
+        $errors  = [];
+
+        $iter = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($extractedRoot, \RecursiveDirectoryIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::SELF_FIRST
+        );
+
+        foreach ($iter as $item) {
+            // Relative path with forward slashes
+            $rel = str_replace('\\', '/', substr($item->getPathname(), strlen($extractedRoot)));
+
+            if ($this->isProtected($rel)) {
+                $skipped++;
+                continue;
+            }
+
+            $target = $projectRoot . $rel;
+
+            if ($item->isDir()) {
+                if (!is_dir($target)) {
+                    @mkdir($target, 0755, true);
+                }
+                continue;
+            }
+
+            // Ensure parent directory exists
+            $targetDir = dirname($target);
+            if (!is_dir($targetDir)) {
+                @mkdir($targetDir, 0755, true);
+            }
+
+            // Read source content and write to destination
+            $content = file_get_contents($item->getPathname());
+            if ($content === false) {
+                $errors[] = 'Read failed: ' . $rel;
+                continue;
+            }
+
+            $result = file_put_contents($target, $content, LOCK_EX);
+            if ($result === false) {
+                $errors[] = 'Write failed: ' . $rel;
+            } else {
+                $copied++;
+            }
+        }
 
         // ── 5. Cleanup temp directory ─────────────────────────────────────────
         $this->rmdirRecursive($tmpDir);
 
-        // ── 6. Update local version.json ──────────────────────────────────────
+        if ($copied === 0 && !empty($errors)) {
+            return back()->withErrors(['update' => 'Update failed — no files could be written. Errors: ' . implode('; ', array_slice($errors, 0, 3))]);
+        }
+
+        // ── 6. Update local version.json (already copied above, but ensure it) 
         if (isset($remote['version'])) {
             file_put_contents(base_path('version.json'), json_encode([
                 'version'   => $remote['version'],
@@ -133,17 +192,23 @@ class UpdateController extends Controller
             Artisan::call('migrate', ['--force' => true]);
         } catch (\Throwable) {}
 
-        // ── 8. Clear caches ───────────────────────────────────────────────────
+        // ── 8. Clear all caches ───────────────────────────────────────────────
         foreach (['config:clear', 'cache:clear', 'view:clear', 'route:clear'] as $cmd) {
             try { Artisan::call($cmd); } catch (\Throwable) {}
+        }
+
+        // Clear compiled view files manually
+        foreach (glob(storage_path('framework/views/*.php')) as $f) {
+            @unlink($f);
         }
 
         Cache::forget(self::CACHE_KEY);
 
         $newVersion = $remote['version'] ?? 'latest';
+        $writeErrors = !empty($errors) ? (' (' . count($errors) . ' files could not be overwritten)') : '';
 
         return redirect()->route('persons.index')
-            ->with('success', "Successfully updated to version {$newVersion}!");
+            ->with('success', "Successfully updated to v{$newVersion}! {$copied} files updated.{$writeErrors}");
     }
 
     // =========================================================================
