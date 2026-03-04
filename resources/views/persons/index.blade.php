@@ -52,7 +52,7 @@
         </div>
     </div>
     <div class="col-6 col-xl">
-        <div class="stat-card c-pink">
+        <div class="stat-card c-teal">
             <div class="stat-label">
                 Events
                 <i class="bi bi-calendar-event"></i>

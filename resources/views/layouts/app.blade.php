@@ -207,6 +207,7 @@
         .stat-card.c-green::before  { background: #22c55e; }
         .stat-card.c-orange::before { background: var(--brand); }
         .stat-card.c-purple::before { background: #a855f7; }
+        .stat-card.c-teal::before   { background: #14b8a6; }
 
         .stat-label {
             font-size: .73rem; font-weight: 600; color: #94a3b8;
@@ -218,6 +219,7 @@
         .c-green  .stat-label i { color: #22c55e; }
         .c-orange .stat-label i { color: var(--brand); }
         .c-purple .stat-label i { color: #a855f7; }
+        .c-teal   .stat-label i { color: #14b8a6; }
 
         .stat-val { font-size: 1.75rem; font-weight: 700; color: #1e293b; line-height: 1; }
         .stat-sub { font-size: .73rem; color: #94a3b8; margin-top: 5px; }
