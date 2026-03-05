@@ -11,8 +11,8 @@
 @endsection
 
 @section('content')
-<div class="row justify-content-center">
-    <div class="col-12 col-lg-9 col-xl-8">
+<div class="row">
+    <div class="col-12">
 
         <div class="card">
             <div class="card-header d-flex align-items-center gap-2">
